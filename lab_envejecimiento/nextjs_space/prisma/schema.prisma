@@ -1,0 +1,253 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+
+}
+enum Rol {
+ADMIN
+GERONTOLOGO
+PODOLOGO
+DIRECTOR
+}
+enum TipoAlta {
+LABORATORIO
+TALLER
+AMBOS
+}
+model User {
+id String @id @default(cuid())
+email String @unique
+password String
+name String
+rol Rol @default(GERONTOLOGO)
+activo Boolean @default(true)
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+
+encargos TallerEncargado[]
+aplicaciones AplicacionEscala[]
+notas NotaClinica[]
+signosVitales SignosVitales[]
+talleres Taller[]
+citas Cita[]
+}
+
+
+model Pam {
+  id                     String    @id @default(cuid())
+  tipoAlta               TipoAlta  @default(LABORATORIO)
+
+  consentimientoAceptado Boolean   @default(false)
+  consentimientoFecha    DateTime?
+  consentimientoNombre   String?
+
+  nombreCompleto    String
+  fechaEntrevista   DateTime?
+  edad              Int?
+  sexo              String?
+  genero            String?
+  fechaNacimiento   DateTime?
+  lugarNacimiento   String?
+  grupoOriginario   String?
+  lenguaIndigena    String?
+  estadoCivil       String?
+  aniosEscuela      Int?
+  escolaridad       String?
+  ocupacion         String?
+  afiliacionMedica  String?
+  alergias          String?
+  tipoSangre        String?
+  pension           String?
+  religion          String?
+  telefono          String?
+  direccion         String?
+  personaContacto   String?
+  telefonoContacto  String?
+
+  motivoConsulta    String?
+  metas             String?
+
+  inactivo          Boolean   @default(false)
+  inactivoDesde     DateTime?
+  motivoPausa       String?
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  primeraCita       PrimeraCita?
+  signosVitales     SignosVitales[]
+  aplicaciones      AplicacionEscala[]
+  notas             NotaClinica[]
+  inscripciones     InscripcionTaller[]
+  asistencias       Asistencia[]
+  citas             Cita[]
+}
+
+model PrimeraCita {
+  id          String   @id @default(cuid())
+  pamId       String   @unique
+  pam         Pam      @relation(fields: [pamId], references: [id], onDelete: Cascade)
+  respuestas  Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SignosVitales {
+  id              String   @id @default(cuid())
+  pamId           String
+  pam             Pam      @relation(fields: [pamId], references: [id], onDelete: Cascade)
+  fecha           DateTime @default(now())
+  ta              String?
+  fc              Float?
+  fr              Float?
+  temperatura     Float?
+  peso            Float?
+  talla           Float?
+  imc             Float?
+  spo2            Float?
+  glucosa         Float?
+  observaciones   String?
+  registradoPorId String?
+  registradoPor   User?    @relation(fields: [registradoPorId], references: [id])
+  createdAt       DateTime @default(now())
+
+  @@index([pamId, fecha])
+}
+
+model AplicacionEscala {
+  id             String   @id @default(cuid())
+  pamId          String
+  pam            Pam      @relation(fields: [pamId], references: [id], onDelete: Cascade)
+  escalaId       String
+  respuestas     Json?
+  puntaje        Float?
+  interpretacion String?
+  comentarios    String?
+  aplicadaPorId  String?
+  aplicadaPor    User?    @relation(fields: [aplicadaPorId], references: [id])
+  fecha          DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  @@index([pamId, escalaId])
+}
+
+model NotaClinica {
+  id        String   @id @default(cuid())
+  pamId     String
+  pam       Pam      @relation(fields: [pamId], references: [id], onDelete: Cascade)
+  titulo    String?
+  contenido String
+  autorId   String?
+  autor     User?    @relation(fields: [autorId], references: [id])
+  fecha     DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([pamId, fecha])
+}
+
+model Taller{
+  id                   String   @id @default(cuid())
+  nombre               String
+  descripcion          String?
+  horario              String?
+  totalSesiones        Int?
+  consentimientoTexto  String?
+  consentimientoPdfUrl String?
+  activo               Boolean  @default(true)
+  encargadoId          String?
+  encargado            User?    @relation(fields: [encargadoId], references: [id])
+
+  encargados   TallerEncargado[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  inscripciones InscripcionTaller[]
+  sesiones      SesionTaller[]
+}
+
+model InscripcionTaller {
+  id       String @id @default(cuid())
+  tallerId String
+  taller   Taller @relation(fields: [tallerId], references: [id], onDelete: Cascade)
+  asistencias Asistencia[]   // ← debe existir
+  pamId    String
+  pam      Pam    @relation(fields: [pamId], references: [id], onDelete: Cascade)
+
+  activa             Boolean   @default(true)
+  bajaDesde          DateTime?
+  motivoBaja         String?
+  faltasConsecutivas Int       @default(0)
+
+  consentimientoAceptado Boolean   @default(false)
+  consentimientoFecha    DateTime?
+  consentimientoNombre   String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([tallerId, pamId])
+}
+
+model SesionTaller {
+  id          String   @id @default(cuid())
+  tallerId    String
+  taller      Taller   @relation(fields: [tallerId], references: [id], onDelete: Cascade)
+  fecha       DateTime @default(now())
+  tema        String?
+  comentarios String?
+  createdAt   DateTime @default(now())
+
+  asistencias Asistencia[]
+
+  @@index([tallerId, fecha])
+}
+
+model Asistencia {
+  id        String       @id @default(cuid())
+  sesionId  String
+  inscripcionTallerId String
+  inscripcionTaller   InscripcionTaller @relation(fields: [inscripcionTallerId], references: [id])
+  sesion    SesionTaller @relation(fields: [sesionId], references: [id], onDelete: Cascade)
+  pamId     String
+  pam       Pam          @relation(fields: [pamId], references: [id], onDelete: Cascade)
+  presente  Boolean      @default(false)
+
+  @@unique([sesionId, pamId])
+}
+
+model Cita {
+  id            String   @id @default(cuid())
+  pamId         String
+  pam           Pam      @relation(fields: [pamId], references: [id], onDelete: Cascade)
+  fecha         DateTime
+  motivo        String?
+  realizada     Boolean  @default(false)
+  gerontologoId String?
+  gerontologo   User?    @relation(fields: [gerontologoId], references: [id])
+  createdAt     DateTime @default(now())
+
+  @@index([fecha])
+}
+
+model TallerEncargado {
+  id        String   @id @default(cuid())
+  tallerId  String
+  taller    Taller   @relation(fields: [tallerId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([tallerId, userId])
+}
+
+model RespaldoPam {
+  id             String   @id @default(cuid())
+  pamId          String
+  datos          Json
+  eliminadoPorId String?
+  eliminadoEn    DateTime @default(now())
+  motivo         String?
+}

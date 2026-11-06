@@ -1,0 +1,13 @@
+node_modules/
+.next/
+oracleJdk-27.jdk/
+*.exe
+*.bat
+*.bak
+.env
+.env.local
+.DS_Store
+*.log
+*.txt
+*.jdk
+tsconfig.tsbuildinfo
